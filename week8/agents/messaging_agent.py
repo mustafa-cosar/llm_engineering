@@ -4,11 +4,13 @@ from agents.deals import Opportunity
 import http.client
 import urllib
 from agents.agent import Agent
+import requests
 
 # Uncomment the Twilio lines if you wish to use Twilio
 
 DO_TEXT = False
 DO_PUSH = True
+
 
 class MessagingAgent(Agent):
 
@@ -21,7 +23,7 @@ class MessagingAgent(Agent):
         or SMS via Twilio,
         whichever is specified in the constants
         """
-        self.log(f"Messaging Agent is initializing")
+        self.log("Messaging Agent is initializing")
         if DO_TEXT:
             account_sid = os.getenv('TWILIO_ACCOUNT_SID', 'your-sid-if-not-using-env')
             auth_token = os.getenv('TWILIO_AUTH_TOKEN', 'your-auth-if-not-using-env')
@@ -30,8 +32,9 @@ class MessagingAgent(Agent):
             # self.client = Client(account_sid, auth_token)
             self.log("Messaging Agent has initialized Twilio")
         if DO_PUSH:
-            self.pushover_user = os.getenv('PUSHOVER_USER', 'your-pushover-user-if-not-using-env')
-            self.pushover_token = os.getenv('PUSHOVER_TOKEN', 'your-pushover-user-if-not-using-env')
+            self.ntfy_topic = os.getenv("NTFY_TOPIC", "your-ntfy-topic-if-not-using-env")
+            # self.pushover_user = os.getenv('PUSHOVER_USER', 'your-pushover-user-if-not-using-env')
+            # self.pushover_token = os.getenv('PUSHOVER_TOKEN', 'your-pushover-user-if-not-using-env')
             self.log("Messaging Agent has initialized Pushover")
 
     def message(self, text):
@@ -50,15 +53,16 @@ class MessagingAgent(Agent):
         Send a Push Notification using the Pushover API
         """
         self.log("Messaging Agent is sending a push notification")
-        conn = http.client.HTTPSConnection("api.pushover.net:443")
-        conn.request("POST", "/1/messages.json",
-          urllib.parse.urlencode({
-            "token": self.pushover_token,
-            "user": self.pushover_user,
-            "message": text,
-            "sound": "cashregister"
-          }), { "Content-type": "application/x-www-form-urlencoded" })
-        conn.getresponse()
+        requests.post(f"https://ntfy.sh/{self.ntfy_topic}", data=text)
+        # conn = http.client.HTTPSConnection("api.pushover.net:443")
+        # conn.request("POST", "/1/messages.json",
+        #   urllib.parse.urlencode({
+        #     "token": self.pushover_token,
+        #     "user": self.pushover_user,
+        #     "message": text,
+        #     "sound": "cashregister"
+        #   }), { "Content-type": "application/x-www-form-urlencoded" })
+        # conn.getresponse()
 
     def alert(self, opportunity: Opportunity):
         """
@@ -74,6 +78,3 @@ class MessagingAgent(Agent):
         if DO_PUSH:
             self.push(text)
         self.log("Messaging Agent has completed")
-        
-    
-        
